@@ -37,7 +37,7 @@ The application currently utilizes **Open-Meteo API** for fetching weather data.
 Our architecture is designed to allow easy switching between different weather providers (e.g., OpenWeather, AccuWeather) by implementing the `WeatherService` protocol, providing flexibility for future integrations.
 
 ### Geocoding Service
-A custom `CLGeocodingService` (implemented as an `actor`) serializes requests to Apple's `CLGeocoder`. This approach ensures robustness and prevents potential rate-limiting or internal issues when `CLGeocoder` is accessed concurrently.
+A custom `CLGeocodingService` (implemented as an `actor`) serializes requests to Apple's `CLGeocoder`. This approach ensures robustness and prevents potential rate-limiting or internal issues when `CLGeocoder` is accessed concurrently. For optimal resource management and to prevent potential concurrency errors from multiple `CLGeocoder` instances, `CLGeocodingService` should ideally be managed as a **singleton** throughout the application's lifecycle.
 
 ### Dependency Injection for Testability
 All core services (`WeatherService`, `PersistenceService`, `LocationService`, `LoggerService`, `TrackerService`) are provided through protocols and injected into `WeatherViewModel`. This design greatly facilitates unit testing by allowing mock implementations to be swapped in during tests.
