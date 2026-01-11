@@ -1,0 +1,21 @@
+import Foundation
+
+/// Defines the contract for a service that fetches weather data.
+/// This protocol allows for interchangeable mock and real network services.
+protocol WeatherServiceProtocol {
+    
+    /// Fetches weather data for a specific city.
+    /// - Parameter city: The name of the city.
+    /// - Returns: A `WeatherModel` containing the processed weather data.
+    /// - Throws: An error if the data fetching fails.
+    #warning("We need to review if we should fetch weather by city name or if exist something more robust")
+    func fetchWeather(for city: String) async throws -> WeatherModel
+
+    /// Fetches weather data for a given latitude and longitude.
+    /// - Parameters:
+    ///   - latitude: The latitude.
+    ///   - longitude: The longitude.
+    /// - Returns: A `WeatherModel` containing the processed weather data.
+    /// - Throws: An error if the data fetching fails.
+    func fetchWeather(latitude: Double, longitude: Double) async throws -> WeatherModel
+}
