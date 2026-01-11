@@ -5,7 +5,7 @@ struct WeatherCardView: View {
     let model: WeatherModel
     
     var body: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: AppTheme.Spacing.medium) {
             Text(model.cityName)
                 .font(.largeTitle)
                 .fontWeight(.bold)
@@ -21,7 +21,7 @@ struct WeatherCardView: View {
             } placeholder: {
                 ProgressView()
             }
-            .frame(width: 100, height: 100)
+            .frame(width: AppTheme.IconSize.large, height: AppTheme.IconSize.large)
             
             Text(model.currentTemperature)
                 .font(.system(size: 70, weight: .thin))
