@@ -108,7 +108,7 @@ struct CurrentLocationView_Previews: PreviewProvider {
             return vm
         }
         
-        let dummyWeather = WeatherModel(cityID: "cupertino", cityName: "Cupertino", description: "Sunny", iconURL: nil, currentTemperature: "25°", minTemperature: "20°", maxTemperature: "30°", isDayTime: true)
+        let dummyWeather = WeatherModel(cityID: "cupertino", cityName: "Cupertino", description: "Sunny", iconUrl: nil, iconName: "sun.max.fill", currentTemperature: "25°", minTemperature: "20°", maxTemperature: "30°", isDayTime: true)
 
         return Group {
             CurrentLocationView(viewModel: createViewModel(for: .idle))

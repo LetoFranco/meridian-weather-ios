@@ -42,16 +42,16 @@ struct ContentView: View {
 
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
-        let successVM = WeatherViewModel(
-            weatherService: MockWeatherService(),
+        let fixedCitiesSuccessVM = WeatherViewModel(
+            weatherService: OpenMeteoWeatherService(geocodingService: CLGeocodingService()),
             persistenceService: UserDefaultsPersistenceService(),
             locationManager: LocationManager()
         )
-        successVM.viewState = .success([
-            WeatherModel(cityID: "london", cityName: "London", description: "Cloudy", iconURL: nil, currentTemperature: "10°", minTemperature: "8°", maxTemperature: "12°", isDayTime: true)
+        fixedCitiesSuccessVM.viewState = .success([
+            WeatherModel(cityID: "london", cityName: "London", description: "Cloudy", iconUrl: nil, iconName: "cloud.sun.fill", currentTemperature: "10°", minTemperature: "8°", maxTemperature: "12°", isDayTime: true)
         ])
 
-        return ContentView(viewModel: successVM)
+        return ContentView(viewModel: fixedCitiesSuccessVM)
             .previewDisplayName("Success State")
     }
 }

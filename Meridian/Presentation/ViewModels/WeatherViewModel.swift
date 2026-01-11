@@ -30,7 +30,7 @@ final class WeatherViewModel: ObservableObject {
     let locationManager: LocationManager
     
     // MARK: - Properties
-    private let cityNames = ["London", "Montevideo", "Buenos Aires"]
+    private let predefinedFixedCities = CityCoordinates.predefinedCities
     private let currentLocationTabID = "__current_location__"
     private var cancellables = Set<AnyCancellable>()
 
@@ -103,9 +103,9 @@ final class WeatherViewModel: ObservableObject {
     private func fetchWeatherForFixedCities() async throws -> [WeatherModel] {
         try await withThrowingTaskGroup(of: (Int, WeatherModel).self) { group in
             var results: [(Int, WeatherModel)] = []
-            for (index, city) in cityNames.enumerated() {
+            for (index, cityCoord) in predefinedFixedCities.enumerated() {
                 group.addTask {
-                    let weatherModel = try await self.weatherService.fetchWeather(for: city)
+                    let weatherModel = try await self.weatherService.fetchWeather(latitude: cityCoord.latitude, longitude: cityCoord.longitude)
                     return (index, weatherModel)
                 }
             }

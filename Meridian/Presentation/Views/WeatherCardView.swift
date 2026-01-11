@@ -9,20 +9,33 @@ struct WeatherCardView: View {
             Text(model.cityName)
                 .font(.largeTitle)
                 .fontWeight(.bold)
-            
+
             Text(model.description)
                 .font(.headline)
                 .fontWeight(.medium)
 
-            AsyncImage(url: model.iconURL) { image in
-                image
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-            } placeholder: {
-                ProgressView()
+            if let iconUrlString = model.iconUrl, let url = URL(string: iconUrlString) {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .empty:
+                        ProgressView()
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                    case .failure:
+                        Image(systemName: model.iconName.isEmpty ? "questionmark.circle.fill" : model.iconName)
+                            .font(.system(size: AppTheme.IconSize.large))
+                    @unknown default:
+                        EmptyView()
+                    }
+                }
+                .frame(width: AppTheme.IconSize.large, height: AppTheme.IconSize.large)
+            } else {
+                Image(systemName: model.iconName.isEmpty ? "questionmark.circle.fill" : model.iconName)
+                    .font(.system(size: AppTheme.IconSize.large))
             }
-            .frame(width: AppTheme.IconSize.large, height: AppTheme.IconSize.large)
-            
+
             Text(model.currentTemperature)
                 .font(.system(size: 70, weight: .thin))
             
@@ -51,7 +64,8 @@ struct WeatherCardView_Previews: PreviewProvider {
             cityID: "london",
             cityName: "London",
             description: "Scattered Clouds",
-            iconURL: URL(string: "https://openweathermap.org/img/wn/03d@2x.png"),
+            iconUrl: nil,
+            iconName: "cloud.sun.fill",
             currentTemperature: "12°",
             minTemperature: "L: 8°",
             maxTemperature: "H: 14°",
