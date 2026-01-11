@@ -11,16 +11,22 @@ import SwiftUI
 @main
 struct MeridianApp: App {
     @StateObject private var locationManager = LocationManager()
+
     private let loggerService: LoggerService
+    private let geocodingService: GeocodingService
     private let weatherService: WeatherService
     private let persistenceService: PersistenceService
 
     init() {
         let logger = ConsoleLoggerService()
-        let geocodingService = CLGeocodingService(geocoder: CLGeocoder(), logger: logger)
+        let geocodingService = CLGeocodingService(logger: logger)
+        let weatherService = OpenMeteoWeatherService(geocodingService: geocodingService, logger: logger)
+        let persistenceService = UserDefaultsPersistenceService()
+
         self.loggerService = logger
-        self.weatherService = OpenMeteoWeatherService(geocodingService: geocodingService, logger: logger)
-        self.persistenceService = UserDefaultsPersistenceService()
+        self.geocodingService = geocodingService
+        self.weatherService = weatherService
+        self.persistenceService = persistenceService
     }
 
     var body: some Scene {

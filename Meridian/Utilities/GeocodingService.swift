@@ -16,13 +16,12 @@ protocol GeocodingService {
 /// An implementation of `GeocodingService` using Apple's `CLGeocoder`
 /// that serializes requests to prevent overloading the underlying geocoder.
 actor CLGeocodingService: GeocodingService {
-    private let geocoder: CLGeocoder
+    private let geocoder = CLGeocoder() // To avoid issue with swift 6, this should become a factory to be inyected.
     private let logger: LoggerService
     private var requestQueue: [GeocodingRequest] = []
     private var processingTask: Task<Void, Never>?
-    
-    init(geocoder: CLGeocoder, logger: LoggerService) {
-        self.geocoder = geocoder
+
+    init(logger: LoggerService) {
         self.logger = logger
     }
     

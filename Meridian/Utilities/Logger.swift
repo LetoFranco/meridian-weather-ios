@@ -2,7 +2,7 @@ import Foundation
 
 // MARK: - LoggerService Protocol
 /// Defines the contract for a logging service.
-protocol LoggerService {
+protocol LoggerService: Sendable {
     /// Logs a message at a specified level.
     func log(_ message: String, level: LogLevel, file: String, function: String, line: Int)
     
@@ -41,8 +41,8 @@ extension LoggerService {
 // MARK: - ConsoleLoggerService
 /// An implementation of `LoggerService` that outputs logs to the console.
 final class ConsoleLoggerService: LoggerService {
-    var minLogLevel: LogLevel
-    
+    private let minLogLevel: LogLevel
+
     init(minLogLevel: LogLevel = .debug) {
         self.minLogLevel = minLogLevel
     }
