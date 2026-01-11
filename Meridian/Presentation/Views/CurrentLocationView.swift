@@ -94,41 +94,36 @@ private struct PermissionDeniedView: View {
     }
 }
 
-
-
 // MARK: - Previews
 struct CurrentLocationView_Previews: PreviewProvider {
     static var previews: some View {
-        let idleVM = WeatherViewModel(weatherService: MockWeatherService(), locationManager: LocationManager())
-        idleVM.currentLocationState = .idle
         
-        let loadingVM = WeatherViewModel(weatherService: MockWeatherService(), locationManager: LocationManager())
-        loadingVM.currentLocationState = .loading
+        func createViewModel(for state: WeatherViewModel.CurrentLocationState) -> WeatherViewModel {
+            let vm = WeatherViewModel(
+                weatherService: MockWeatherService(),
+                persistenceService: UserDefaultsPersistenceService(),
+                locationManager: LocationManager()
+            )
+            vm.currentLocationState = state
+            return vm
+        }
         
-        let deniedVM = WeatherViewModel(weatherService: MockWeatherService(), locationManager: LocationManager())
-        deniedVM.currentLocationState = .denied
-        
-        let successVM = WeatherViewModel(weatherService: MockWeatherService(), locationManager: LocationManager())
         let dummyWeather = WeatherModel(cityID: "cupertino", cityName: "Cupertino", description: "Sunny", iconURL: nil, currentTemperature: "25°", minTemperature: "20°", maxTemperature: "30°", isDayTime: true)
-        successVM.currentLocationState = .success(dummyWeather)
-        
-        let errorVM = WeatherViewModel(weatherService: MockWeatherService(), locationManager: LocationManager())
-        errorVM.currentLocationState = .error("Failed to fetch data.")
-        
+
         return Group {
-            CurrentLocationView(viewModel: idleVM)
+            CurrentLocationView(viewModel: createViewModel(for: .idle))
                 .previewDisplayName("Idle State")
             
-            CurrentLocationView(viewModel: loadingVM)
+            CurrentLocationView(viewModel: createViewModel(for: .loading))
                 .previewDisplayName("Loading State")
             
-            CurrentLocationView(viewModel: deniedVM)
+            CurrentLocationView(viewModel: createViewModel(for: .denied))
                 .previewDisplayName("Denied State")
             
-            CurrentLocationView(viewModel: successVM)
+            CurrentLocationView(viewModel: createViewModel(for: .success(dummyWeather)))
                 .previewDisplayName("Success State")
             
-            CurrentLocationView(viewModel: errorVM)
+            CurrentLocationView(viewModel: createViewModel(for: .error("Failed to fetch data.")))
                 .previewDisplayName("Error State")
         }
     }

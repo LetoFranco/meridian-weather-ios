@@ -1,20 +1,35 @@
-
 import Foundation
 
-// MARK: - PersistenceManager
-/// Manages the persistence of user preferences, such as the last viewed city ID.
-enum PersistenceManager {
-    private static let lastCityIDKey = "lastCityID"
-    
+// MARK: - PersistenceService
+/// Defines the contract for a service that persists user preferences.
+protocol PersistenceService {
     /// Saves the ID of the last viewed city.
     /// - Parameter cityID: The stable ID of the city to save.
-    static func saveLastSelected(cityID: String) {
-        UserDefaults.standard.set(cityID, forKey: lastCityIDKey)
-    }
+    func saveLastSelected(cityID: String)
     
     /// Retrieves the ID of the last viewed city.
     /// - Returns: The ID of the last viewed city, or `nil` if not found.
-    static func getLastSelectedCityID() -> String? {
-        UserDefaults.standard.string(forKey: lastCityIDKey)
+    func getLastSelectedCityID() -> String?
+}
+
+// MARK: - UserDefaultsPersistenceService
+/// The default implementation of `PersistenceService` using `UserDefaults`.
+final class UserDefaultsPersistenceService: PersistenceService {
+    private let userDefaults: UserDefaults
+    
+    private let lastCityIDKey = "lastCityID"
+    
+    /// Initializes the service with a `UserDefaults` instance.
+    /// - Parameter userDefaults: The `UserDefaults` instance to use for persistence. Defaults to `.standard`.
+    init(userDefaults: UserDefaults = .standard) {
+        self.userDefaults = userDefaults
+    }
+    
+    func saveLastSelected(cityID: String) {
+        userDefaults.set(cityID, forKey: lastCityIDKey)
+    }
+    
+    func getLastSelectedCityID() -> String? {
+        userDefaults.string(forKey: lastCityIDKey)
     }
 }

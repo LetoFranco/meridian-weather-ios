@@ -2,7 +2,7 @@ import Foundation
 
 /// Defines the contract for a service that fetches weather data.
 /// This protocol allows for interchangeable mock and real network services.
-protocol WeatherServiceProtocol {
+protocol WeatherService {
     
     /// Fetches weather data for a specific city.
     /// - Parameter city: The name of the city.

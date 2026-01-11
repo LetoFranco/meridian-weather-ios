@@ -6,15 +6,12 @@ import CoreLocation
 final class WeatherViewModel: ObservableObject {
     
     // MARK: - State Management
-    
-    /// State for the fixed cities weather data.
     enum ViewState {
         case loading
         case success([WeatherModel])
         case error(String)
     }
     
-    /// State for the user's current location weather.
     enum CurrentLocationState {
         case idle
         case loading
@@ -25,25 +22,31 @@ final class WeatherViewModel: ObservableObject {
     
     @Published var viewState: ViewState = .loading
     @Published var currentLocationState: CurrentLocationState = .idle
+    @Published var selectedTab: Int = 0
     
     // MARK: - Dependencies
-    private let weatherService: WeatherServiceProtocol
+    private let weatherService: WeatherService
+    private let persistenceService: PersistenceService
     let locationManager: LocationManager
     
     // MARK: - Properties
     private let cityNames = ["London", "Montevideo", "Buenos Aires"]
+    private let currentLocationTabID = "__current_location__"
     private var cancellables = Set<AnyCancellable>()
 
-    init(weatherService: WeatherServiceProtocol, locationManager: LocationManager) {
+    init(
+        weatherService: WeatherService,
+        persistenceService: PersistenceService,
+        locationManager: LocationManager
+    ) {
         self.weatherService = weatherService
+        self.persistenceService = persistenceService
         self.locationManager = locationManager
         
         setupBindings()
     }
     
     // MARK: - Public API
-    
-    /// Loads weather data for the fixed list of cities.
     func loadFixedCityData() {
         self.viewState = .loading
         
@@ -51,20 +54,28 @@ final class WeatherViewModel: ObservableObject {
             do {
                 let weatherData = try await fetchWeatherForFixedCities()
                 self.viewState = .success(weatherData)
+                
+                restoreLastSelectedTab(fixedCityModels: weatherData)
+                
             } catch {
                 self.viewState = .error(error.localizedDescription)
             }
         }
     }
     
-    /// Initiates the process of getting the user's current location weather.
     func requestCurrentLocation() {
         locationManager.requestLocationAuthorization()
     }
     
     // MARK: - Private Setup and Helpers
-    
     private func setupBindings() {
+        $selectedTab
+            .dropFirst()
+            .sink { [weak self] newIndex in
+                self?.saveSelectedTab(index: newIndex)
+            }
+            .store(in: &cancellables)
+
         locationManager.$authorizationStatus
             .sink { [weak self] status in
                 guard let self = self else { return }
@@ -74,8 +85,6 @@ final class WeatherViewModel: ObservableObject {
                     self.locationManager.startUpdatingLocation()
                 case .denied, .restricted:
                     self.currentLocationState = .denied
-                case .notDetermined:
-                    self.currentLocationState = .idle
                 default:
                     self.currentLocationState = .idle
                 }
@@ -92,17 +101,19 @@ final class WeatherViewModel: ObservableObject {
     }
     
     private func fetchWeatherForFixedCities() async throws -> [WeatherModel] {
-        try await withThrowingTaskGroup(of: WeatherModel.self) { group in
-            var results = [WeatherModel]()
-            for city in cityNames {
+        try await withThrowingTaskGroup(of: (Int, WeatherModel).self) { group in
+            var results: [(Int, WeatherModel)] = []
+            for (index, city) in cityNames.enumerated() {
                 group.addTask {
-                    try await self.weatherService.fetchWeather(for: city)
+                    let weatherModel = try await self.weatherService.fetchWeather(for: city)
+                    return (index, weatherModel)
                 }
             }
-            for try await weatherModel in group {
-                results.append(weatherModel)
+            for try await (index, weatherModel) in group {
+                results.append((index, weatherModel))
             }
-            return results
+            results.sort { $0.0 < $1.0 }
+            return results.map { $0.1 }
         }
     }
     
@@ -117,6 +128,29 @@ final class WeatherViewModel: ObservableObject {
             } catch {
                 self.currentLocationState = .error(error.localizedDescription)
             }
+        }
+    }
+    
+    private func restoreLastSelectedTab(fixedCityModels: [WeatherModel]) {
+        let lastID = persistenceService.getLastSelectedCityID() ?? currentLocationTabID
+        
+        var allTabIDs = [currentLocationTabID]
+        allTabIDs.append(contentsOf: fixedCityModels.map { $0.cityID })
+        
+        if let savedIndex = allTabIDs.firstIndex(of: lastID) {
+            self.selectedTab = savedIndex
+        }
+    }
+    
+    private func saveSelectedTab(index: Int) {
+        guard case .success(let models) = viewState else { return }
+        
+        var allTabIDs = [currentLocationTabID]
+        allTabIDs.append(contentsOf: models.map { $0.cityID })
+        
+        if allTabIDs.indices.contains(index) {
+            let idToSave = allTabIDs[index]
+            persistenceService.saveLastSelected(cityID: idToSave)
         }
     }
 }

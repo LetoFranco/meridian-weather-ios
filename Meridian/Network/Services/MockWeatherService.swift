@@ -1,8 +1,8 @@
 import Foundation
 
 // MARK: - MockWeatherService
-/// A mock implementation of `WeatherServiceProtocol` for development and testing.
-final class MockWeatherService: WeatherServiceProtocol {
+/// A mock implementation of `WeatherService` for development and testing.
+final class MockWeatherService: WeatherService {
     
     func fetchWeather(for city: String) async throws -> WeatherModel {
         try await Task.sleep(nanoseconds: .sleepDefaultDuration)
