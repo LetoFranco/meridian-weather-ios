@@ -1,39 +1,68 @@
 import SwiftUI
+import CoreLocation
 
 struct ContentView: View {
     
     @StateObject private var viewModel: WeatherViewModel
-    
+    @State private var selectedTab: Int
+
     init(viewModel: WeatherViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
+        _selectedTab = State(initialValue: PersistenceManager.getLastCityIndex() ?? 0)
     }
     
     var body: some View {
         ZStack {
-            switch viewModel.viewState {
-            case .loading:
-                ProgressView("Fetching Weather...")
-                    .progressViewStyle(CircularProgressViewStyle())
-            
-            case .success(let weatherModels):
-                TabView {
-                    ForEach(weatherModels) { model in
-                        WeatherCardView(model: model)
-                    }
-                }
-                .tabViewStyle(.page(indexDisplayMode: .always))
-                
-            case .error(let errorMessage):
+            if viewModel.locationPermissionAreDenied {
                 VStack {
-                    Text("Something went wrong")
+                    Text("Location access denied")
                         .font(.headline)
-                    Text(errorMessage)
-                        .font(.callout)
-                    Button("Retry") {
-                        viewModel.loadWeatherData()
+                    Text("Please enable location services in Settings to see current weather.")
+                        .font(.subheadline)
+                        .multilineTextAlignment(.center)
+                        .padding()
+                    Button("Open Settings") {
+                        if let url = URL(string: UIApplication.openSettingsURLString) {
+                            UIApplication.shared.open(url)
+                        }
                     }
-                    .padding()
                     .buttonStyle(.borderedProminent)
+                }
+                .padding()
+            } else {
+                switch viewModel.viewState {
+                case .loading:
+                    ProgressView("Fetching Weather...")
+                        .progressViewStyle(CircularProgressViewStyle())
+                
+                case .success(let weatherModels):
+                    if weatherModels.isEmpty {
+                        ProgressView("Waiting for weather data...")
+                    } else {
+                        TabView(selection: $selectedTab) {
+                            ForEach(weatherModels.indices, id: \.self) { index in
+                                WeatherCardView(model: weatherModels[index])
+                                    .tag(index)
+                            }
+                        }
+                        .tabViewStyle(.page(indexDisplayMode: .always))
+                        .onChange(of: selectedTab) { newIndex in
+                            PersistenceManager.saveLastCityIndex(index: newIndex)
+                        }
+                    }
+                    
+                case .error(let errorMessage):
+                    VStack {
+                        Text("Something went wrong")
+                            .font(.headline)
+                        Text(errorMessage)
+                            .font(.callout)
+                        Button("Retry") {
+                            viewModel.loadWeatherData()
+                        }
+                        .padding()
+                        .buttonStyle(.borderedProminent)
+                    }
                 }
             }
         }
@@ -45,8 +74,27 @@ struct ContentView: View {
 
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
-        let successVM = WeatherViewModel(weatherService: MockWeatherService())
-        
-        return ContentView(viewModel: successVM)
+        let successLocationManager = LocationManager()
+        successLocationManager.authorizationStatus = .authorizedWhenInUse
+        successLocationManager.currentLocation = CLLocation(latitude: 34.0522, longitude: -118.2437)
+        let successVM = WeatherViewModel(
+            weatherService: MockWeatherService(),
+            locationManager: successLocationManager
+        )
+
+        let deniedLocationManager = LocationManager()
+        deniedLocationManager.authorizationStatus = .denied
+        let deniedVM = WeatherViewModel(
+            weatherService: MockWeatherService(),
+            locationManager: deniedLocationManager
+        )
+
+        return Group {
+            ContentView(viewModel: successVM)
+                .previewDisplayName("Success with Location")
+            
+            ContentView(viewModel: deniedVM)
+                .previewDisplayName("Location Denied")
+        }
     }
 }
