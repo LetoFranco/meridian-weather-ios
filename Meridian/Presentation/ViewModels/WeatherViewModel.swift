@@ -28,6 +28,7 @@ final class WeatherViewModel: ObservableObject {
     private let weatherService: WeatherService
     private let persistenceService: PersistenceService
     let locationManager: LocationManager
+    private let logger: LoggerService
     
     // MARK: - Properties
     private let predefinedFixedCities = CityCoordinates.predefinedCities
@@ -37,27 +38,30 @@ final class WeatherViewModel: ObservableObject {
     init(
         weatherService: WeatherService,
         persistenceService: PersistenceService,
-        locationManager: LocationManager
+        locationManager: LocationManager,
+        logger: LoggerService
     ) {
         self.weatherService = weatherService
         self.persistenceService = persistenceService
         self.locationManager = locationManager
+        self.logger = logger
         
         setupBindings()
     }
     
     // MARK: - Public API
     func loadFixedCityData() {
+        logger.info("Starting loadFixedCityData()")
         self.viewState = .loading
         
         Task {
             do {
                 let weatherData = try await fetchWeatherForFixedCities()
+                logger.info("Successfully fetched fixed city data.")
                 self.viewState = .success(weatherData)
-                
                 restoreLastSelectedTab(fixedCityModels: weatherData)
-                
             } catch {
+                logger.error("Failed to fetch fixed city data with error: \(error.localizedDescription)")
                 self.viewState = .error(error.localizedDescription)
             }
         }
@@ -101,11 +105,18 @@ final class WeatherViewModel: ObservableObject {
     }
     
     private func fetchWeatherForFixedCities() async throws -> [WeatherModel] {
-        try await withThrowingTaskGroup(of: (Int, WeatherModel).self) { group in
+        logger.info("Starting fetchWeatherForFixedCities() concurrently for \(predefinedFixedCities.count) cities.")
+        return try await withThrowingTaskGroup(of: (Int, WeatherModel).self) { [weak self] group in
+            guard let self else { throw CancellationError() }
+
             var results: [(Int, WeatherModel)] = []
-            for (index, cityCoord) in predefinedFixedCities.enumerated() {
-                group.addTask {
+            for (index, cityCoord) in self.predefinedFixedCities.enumerated() {
+                group.addTask { [weak self] in
+                    guard let self else { throw CancellationError() }
+
+                    await self.logger.debug("Adding task for \(cityCoord.name) (\(cityCoord.latitude), \(cityCoord.longitude))")
                     let weatherModel = try await self.weatherService.fetchWeather(latitude: cityCoord.latitude, longitude: cityCoord.longitude)
+                    await self.logger.debug("Task for \(cityCoord.name) completed.")
                     return (index, weatherModel)
                 }
             }
@@ -113,6 +124,7 @@ final class WeatherViewModel: ObservableObject {
                 results.append((index, weatherModel))
             }
             results.sort { $0.0 < $1.0 }
+            logger.info("All fixed city weather fetched and sorted.")
             return results.map { $0.1 }
         }
     }

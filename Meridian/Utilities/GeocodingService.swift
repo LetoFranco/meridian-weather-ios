@@ -13,34 +13,63 @@ protocol GeocodingService {
 }
 
 // MARK: - CLGeocodingService
-/// An implementation of `GeocodingService` using Apple's `CLGeocoder`.
-final class CLGeocodingService: GeocodingService {
+/// An implementation of `GeocodingService` using Apple's `CLGeocoder`
+/// that serializes requests to prevent overloading the underlying geocoder.
+actor CLGeocodingService: GeocodingService {
     private let geocoder: CLGeocoder
+    private let logger: LoggerService
+    private var requestQueue: [GeocodingRequest] = []
+    private var processingTask: Task<Void, Never>?
     
-    init(geocoder: CLGeocoder = CLGeocoder()) {
+    init(geocoder: CLGeocoder, logger: LoggerService) {
         self.geocoder = geocoder
+        self.logger = logger
     }
     
-    func reverseGeocode(location: CLLocation) async throws -> String? {        
-        do {
-            let placemarks = try await geocoder.reverseGeocodeLocation(location)
+    func reverseGeocode(location: CLLocation) async throws -> String? {
+        return try await withCheckedThrowingContinuation { continuation in
+            let request = GeocodingRequest(location: location, continuation: continuation)
+            requestQueue.append(request)
 
-            return placemarks.first?.locality ?? placemarks.first?.subLocality ?? placemarks.first?.administrativeArea
-        } catch {
-            throw GeocodingError.geocodingFailed(error)
+            if processingTask == nil {
+                startProcessing()
+            }
         }
+    }
+    
+    private func startProcessing() {
+        processingTask = Task { [weak self] in
+            await self?.processQueue()
+        }
+    }
+    
+    private func processQueue() async {
+        while !requestQueue.isEmpty {
+            let request = requestQueue.removeFirst()
+            do {
+                let placemarks = try await geocoder.reverseGeocodeLocation(request.location)
+                let cityName = placemarks.first?.locality ?? placemarks.first?.subLocality ?? placemarks.first?.administrativeArea
+                request.continuation.resume(returning: cityName)
+            } catch {
+                request.continuation.resume(throwing: GeocodingError.geocodingFailed(error))
+            }
+        }
+        processingTask = nil
+    }
+    
+    // MARK: - Private Helper Struct
+    private struct GeocodingRequest {
+        let location: CLLocation
+        let continuation: CheckedContinuation<String?, Error>
     }
 }
 
 // MARK: - GeocodingError
 enum GeocodingError: Error, LocalizedError {
-    case notAvailable
     case geocodingFailed(Error)
     
     var errorDescription: String? {
         switch self {
-        case .notAvailable:
-            return "Geocoding service is not available on this device."
         case .geocodingFailed(let error):
             return "Geocoding failed: \(error.localizedDescription)"
         }

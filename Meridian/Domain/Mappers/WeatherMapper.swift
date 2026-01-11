@@ -20,7 +20,7 @@ enum WeatherMapper {
         return WeatherModel(
             cityID: cityName.lowercased().replacingOccurrences(of: " ", with: "_"),
             cityName: cityName,
-            description: "Weather Code \(weatherCode)",
+            description: weatherCode.toWeatherDescription(),
             iconUrl: nil,
             iconName: weatherCode.toSFSymbol(isDay: isDay),
             currentTemperature: String(format: "%.0f°", currentTemp),

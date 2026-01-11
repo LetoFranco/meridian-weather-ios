@@ -102,7 +102,8 @@ struct CurrentLocationView_Previews: PreviewProvider {
             let vm = WeatherViewModel(
                 weatherService: MockWeatherService(),
                 persistenceService: UserDefaultsPersistenceService(),
-                locationManager: LocationManager()
+                locationManager: LocationManager(),
+                logger: ConsoleLoggerService()
             )
             vm.currentLocationState = state
             return vm
