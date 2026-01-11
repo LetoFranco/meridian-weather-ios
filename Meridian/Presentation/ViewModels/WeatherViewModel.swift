@@ -4,145 +4,119 @@ import CoreLocation
 
 @MainActor
 final class WeatherViewModel: ObservableObject {
+    
     // MARK: - State Management
+    
+    /// State for the fixed cities weather data.
     enum ViewState {
         case loading
         case success([WeatherModel])
         case error(String)
-
-        var isLoading: Bool {
-            switch self {
-            case .loading:
-                return true
-            default:
-                return false
-            }
-        }
+    }
+    
+    /// State for the user's current location weather.
+    enum CurrentLocationState {
+        case idle
+        case loading
+        case success(WeatherModel)
+        case denied
+        case error(String)
     }
     
     @Published var viewState: ViewState = .loading
+    @Published var currentLocationState: CurrentLocationState = .idle
     
     // MARK: - Dependencies
     private let weatherService: WeatherServiceProtocol
-    private let locationManager: LocationManager
+    let locationManager: LocationManager
     
     // MARK: - Properties
-    private var cityNames = ["London", "Montevideo", "Buenos Aires"]
+    private let cityNames = ["London", "Montevideo", "Buenos Aires"]
     private var cancellables = Set<AnyCancellable>()
-    private var fetchedFixedCityWeather: [WeatherModel] = []
-    private var fetchedCurrentLocationWeather: WeatherModel? = nil
 
-    var locationPermissionAreDenied: Bool {
-        locationManager.authorizationStatus == .denied || locationManager.authorizationStatus == .restricted
-    }
-
-    init(
-        weatherService: WeatherServiceProtocol,
-        locationManager: LocationManager
-    ) {
+    init(weatherService: WeatherServiceProtocol, locationManager: LocationManager) {
         self.weatherService = weatherService
         self.locationManager = locationManager
-
-        self.locationManager.$currentLocation
-            .sink { [weak self] location in
-                self?.handleLocationUpdate(location)
-            }
-            .store(in: &cancellables)
-
-        self.locationManager.$authorizationStatus
-            .sink { [weak self] status in
-                if status == .authorizedWhenInUse || status == .authorizedAlways {
-                    self?.locationManager.startUpdatingLocation()
-                } else if status == .denied || status == .restricted {
-                    self?.fetchedCurrentLocationWeather = nil
-                    self?.loadWeatherData()
-                }
-            }
-            .store(in: &cancellables)
+        
+        setupBindings()
     }
-
-    // MARK: - Public Functions
-    func loadWeatherData() {
+    
+    // MARK: - Public API
+    
+    /// Loads weather data for the fixed list of cities.
+    func loadFixedCityData() {
         self.viewState = .loading
-
-        locationManager.requestLocationAuthorization()
         
         Task {
             do {
-                fetchedFixedCityWeather = try await fetchWeatherForFixedCities()
-
-                if let location = locationManager.currentLocation,
-                   (locationManager.authorizationStatus == .authorizedWhenInUse || locationManager.authorizationStatus == .authorizedAlways) {
-                    fetchedCurrentLocationWeather = try await weatherService.fetchWeather(latitude: location.coordinate.latitude, longitude: location.coordinate.longitude)
-                } else {
-                    fetchedCurrentLocationWeather = nil
-                }
-                
-                updateViewState()
+                let weatherData = try await fetchWeatherForFixedCities()
+                self.viewState = .success(weatherData)
             } catch {
                 self.viewState = .error(error.localizedDescription)
             }
         }
     }
     
-    // MARK: - Private Functions
+    /// Initiates the process of getting the user's current location weather.
+    func requestCurrentLocation() {
+        locationManager.requestLocationAuthorization()
+    }
+    
+    // MARK: - Private Setup and Helpers
+    
+    private func setupBindings() {
+        locationManager.$authorizationStatus
+            .sink { [weak self] status in
+                guard let self = self else { return }
+                switch status {
+                case .authorizedWhenInUse, .authorizedAlways:
+                    self.currentLocationState = .loading
+                    self.locationManager.startUpdatingLocation()
+                case .denied, .restricted:
+                    self.currentLocationState = .denied
+                case .notDetermined:
+                    self.currentLocationState = .idle
+                default:
+                    self.currentLocationState = .idle
+                }
+            }
+            .store(in: &cancellables)
+
+        locationManager.$currentLocation
+            .compactMap { $0 }
+            .debounce(for: .seconds(1), scheduler: RunLoop.main)
+            .sink { [weak self] location in
+                self?.fetchWeather(for: location)
+            }
+            .store(in: &cancellables)
+    }
+    
     private func fetchWeatherForFixedCities() async throws -> [WeatherModel] {
         try await withThrowingTaskGroup(of: WeatherModel.self) { group in
             var results = [WeatherModel]()
-            
             for city in cityNames {
                 group.addTask {
                     try await self.weatherService.fetchWeather(for: city)
                 }
             }
-            
             for try await weatherModel in group {
                 results.append(weatherModel)
             }
-            
             return results
         }
     }
     
-    private func handleLocationUpdate(_ location: CLLocation?) {
-        guard let location = location,
-              (locationManager.authorizationStatus == .authorizedWhenInUse || locationManager.authorizationStatus == .authorizedAlways) else {
-
-            if fetchedCurrentLocationWeather != nil {
-                fetchedCurrentLocationWeather = nil
-                updateViewState()
-            }
-            return
-        }
-
+    private func fetchWeather(for location: CLLocation) {
+        if case .success = currentLocationState { return }
+        
+        self.currentLocationState = .loading
         Task {
             do {
-                let newWeather = try await weatherService.fetchWeather(latitude: location.coordinate.latitude, longitude: location.coordinate.longitude)
-                if newWeather.cityName != fetchedCurrentLocationWeather?.cityName || newWeather.currentTemperature != fetchedCurrentLocationWeather?.currentTemperature {
-                    fetchedCurrentLocationWeather = newWeather
-                    updateViewState()
-                }
+                let weather = try await weatherService.fetchWeather(latitude: location.coordinate.latitude, longitude: location.coordinate.longitude)
+                self.currentLocationState = .success(weather)
             } catch {
-                print("Failed to fetch weather for current location: \(error.localizedDescription)")
-                if fetchedCurrentLocationWeather != nil {
-                    fetchedCurrentLocationWeather = nil
-                    updateViewState()
-                }
+                self.currentLocationState = .error(error.localizedDescription)
             }
-        }
-    }
-    
-    private func updateViewState() {
-        var allWeatherModels = [WeatherModel]()
-        if let currentWeather = fetchedCurrentLocationWeather {
-            allWeatherModels.append(currentWeather)
-        }
-        allWeatherModels.append(contentsOf: fetchedFixedCityWeather)
-        
-        if allWeatherModels.isEmpty && !viewState.isLoading {
-            self.viewState = .error("No weather data available. Please check permissions or try again.")
-        } else if !allWeatherModels.isEmpty {
-            self.viewState = .success(allWeatherModels)
         }
     }
 }

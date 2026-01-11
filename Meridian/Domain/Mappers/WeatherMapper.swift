@@ -9,7 +9,6 @@ enum WeatherMapper {
     /// - Returns: A `WeatherModel` with processed and formatted data.
     static func map(dto: OpenWeatherDTO) -> WeatherModel {
         
-        // Determine if it's daytime based on current time vs sunrise/sunset
         let now = Date()
         let sunrise = Date(timeIntervalSince1970: dto.sys.sunrise)
         let sunset = Date(timeIntervalSince1970: dto.sys.sunset)
