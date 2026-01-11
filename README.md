@@ -15,7 +15,7 @@ Meridian is a modern iOS weather application built with SwiftUI, designed to pro
 Meridian is built adhering to principles of clean architecture and uses modern Swift features:
 
 *   **MVVM-C (Model-View-ViewModel-Coordinator):** While not explicitly using a Coordinator in this scope, the project structure implies a separation of concerns with `Views`, `ViewModels`, and `Domain` (Models) layers.
-*   **Swift Concurrency:** Leverages `async/await`, `TaskGroup`, and `actor` for efficient, safe, and readable asynchronous operations.
+*   **Swift Concurrency:** Leverages `async/await`, `TaskGroup`, and `actor` for efficient, safe, and readable asynchronous operations. **Future efforts will focus on robustly managing 'orphan' tasks** (those initiated without a parent `Task`, e.g., in `ViewModel`s) by holding references for explicit cancellation. This practice is vital for preventing memory leaks and unnecessary resource consumption, ensuring that ongoing work is stopped when no longer needed (e.g., when a view disappears).
 *   **Dependency Injection:** Services are injected into ViewModels, promoting modularity, testability, and easier maintenance.
 
 ## Technology Stack
