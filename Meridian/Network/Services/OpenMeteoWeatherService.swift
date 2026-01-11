@@ -68,23 +68,33 @@ final class OpenMeteoWeatherService: WeatherService {
             return WeatherMapper.map(dto: openMeteoResponse, cityName: finalCityName)
         } catch {
             logger.error("Decoding error: \(error.localizedDescription). Data: \(String(data: data, encoding: .utf8) ?? "N/A")")
-            throw WeatherServiceError.decodingError(error)
+            throw WeatherServiceError.decodingError(error.localizedDescription)
         }
     }
 }
 
 // MARK: - WeatherServiceError
-enum WeatherServiceError: Error, LocalizedError {
+enum WeatherServiceError: Error, LocalizedError, Equatable {
     case invalidURL
     case invalidServerResponse
-    case decodingError(Error)
+    case decodingError(String)
     case cityNameNotFound
+
+    static func == (lhs: WeatherServiceError, rhs: WeatherServiceError) -> Bool {
+        switch (lhs, rhs) {
+        case (.invalidURL, .invalidURL): return true
+        case (.invalidServerResponse, .invalidServerResponse): return true
+        case (.cityNameNotFound, .cityNameNotFound): return true
+        case (.decodingError(let lhsMsg), .decodingError(let rhsMsg)): return lhsMsg == rhsMsg
+        default: return false
+        }
+    }
     
     var errorDescription: String? {
         switch self {
         case .invalidURL: return "The URL for the weather service was invalid."
         case .invalidServerResponse: return "The server returned an invalid response."
-        case .decodingError(let error): return "Failed to decode weather data: \(error.localizedDescription)"
+        case .decodingError(let message): return "Failed to decode weather data: \(message)"
         case .cityNameNotFound: return "Could not find coordinates for the specified city name."
         }
     }

@@ -27,7 +27,7 @@ final class WeatherViewModel: ObservableObject {
     // MARK: - Dependencies
     private let weatherService: WeatherService
     private let persistenceService: PersistenceService
-    let locationManager: LocationManager
+    let locationManager: any LocationService
     private let logger: LoggerService
     private let trackerService: TrackerService
     
@@ -39,7 +39,7 @@ final class WeatherViewModel: ObservableObject {
     init(
         weatherService: WeatherService,
         persistenceService: PersistenceService,
-        locationManager: LocationManager,
+        locationManager: any LocationService,
         logger: LoggerService,
         trackerService: TrackerService
     ) {
@@ -87,7 +87,7 @@ final class WeatherViewModel: ObservableObject {
             }
             .store(in: &cancellables)
 
-        locationManager.$authorizationStatus
+        locationManager.authorizationStatusPublisher
             .sink { [weak self] status in
                 guard let self = self else { return }
                 switch status {
@@ -96,13 +96,15 @@ final class WeatherViewModel: ObservableObject {
                     self.locationManager.startUpdatingLocation()
                 case .denied, .restricted:
                     self.currentLocationState = .denied
+                case .notDetermined:
+                    self.currentLocationState = .idle
                 default:
                     self.currentLocationState = .idle
                 }
             }
             .store(in: &cancellables)
 
-        locationManager.$currentLocation
+        locationManager.currentLocationPublisher
             .compactMap { $0 }
             .debounce(for: .seconds(1), scheduler: RunLoop.main)
             .sink { [weak self] location in

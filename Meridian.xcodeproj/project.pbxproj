@@ -40,11 +40,6 @@
 			path = MeridianTests;
 			sourceTree = "<group>";
 		};
-		1D835CE32F12964E000084BC /* MeridianUITests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = MeridianUITests;
-			sourceTree = "<group>";
-		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -77,7 +72,6 @@
 			children = (
 				1D835CCB2F12964D000084BC /* Meridian */,
 				1D835CD92F12964E000084BC /* MeridianTests */,
-				1D835CE32F12964E000084BC /* MeridianUITests */,
 				1D835CCA2F12964D000084BC /* Products */,
 			);
 			sourceTree = "<group>";
@@ -152,9 +146,6 @@
 			);
 			dependencies = (
 				1D835CE22F12964E000084BC /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				1D835CE32F12964E000084BC /* MeridianUITests */,
 			);
 			name = MeridianUITests;
 			packageProductDependencies = (
