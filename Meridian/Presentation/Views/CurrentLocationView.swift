@@ -43,7 +43,9 @@ struct CurrentLocationView: View {
         case .denied:
             PermissionDeniedView()
         case .error(let message):
-            ErrorView(message: message, viewModel: viewModel)
+            RetryView(message: message) {
+                viewModel.requestCurrentLocation()
+            }
         }
     }
 }
@@ -92,31 +94,11 @@ private struct PermissionDeniedView: View {
     }
 }
 
-private struct ErrorView: View {
-    let message: String
-    @ObservedObject var viewModel: WeatherViewModel
-    
-    var body: some View {
-        VStack(spacing: AppTheme.Spacing.large) {
-            Text("Something Went Wrong")
-                .font(.headline)
-            Text(message)
-            Button("Retry") {
-                viewModel.requestCurrentLocation()
-            }
-            .padding()
-            .background(Color.blue)
-            .clipShape(Capsule())
-        }
-        .padding()
-    }
-}
+
 
 // MARK: - Previews
 struct CurrentLocationView_Previews: PreviewProvider {
     static var previews: some View {
-        
-        
         let idleVM = WeatherViewModel(weatherService: MockWeatherService(), locationManager: LocationManager())
         idleVM.currentLocationState = .idle
         

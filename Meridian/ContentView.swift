@@ -55,16 +55,8 @@ struct ContentView: View {
                 }
                 
             case .error(let errorMessage):
-                VStack {
-                    Text("Failed to load city data")
-                        .font(.headline)
-                    Text(errorMessage)
-                        .font(.callout)
-                    Button("Retry") {
-                        viewModel.loadFixedCityData()
-                    }
-                    .padding()
-                    .buttonStyle(.borderedProminent)
+                RetryView(message: errorMessage) {
+                    viewModel.loadFixedCityData()
                 }
             }
         }
