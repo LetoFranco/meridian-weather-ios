@@ -42,11 +42,13 @@ struct ContentView: View {
 
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
+        let logger = ConsoleLoggerService()
         let fixedCitiesSuccessVM = WeatherViewModel(
             weatherService: MockWeatherService(),
             persistenceService: UserDefaultsPersistenceService(),
             locationManager: LocationManager(),
-            logger: ConsoleLoggerService()
+            logger: logger,
+            trackerService: AnalyticsTrackerService(logger: logger)
         )
         fixedCitiesSuccessVM.viewState = .success([
             WeatherModel(cityID: "london", cityName: "London", description: "Cloudy", iconUrl: nil, iconName: "cloud.sun.fill", currentTemperature: "10°", minTemperature: "8°", maxTemperature: "12°", isDayTime: true)

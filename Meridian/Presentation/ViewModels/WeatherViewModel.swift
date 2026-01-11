@@ -29,6 +29,7 @@ final class WeatherViewModel: ObservableObject {
     private let persistenceService: PersistenceService
     let locationManager: LocationManager
     private let logger: LoggerService
+    private let trackerService: TrackerService
     
     // MARK: - Properties
     private let predefinedFixedCities = CityCoordinates.predefinedCities
@@ -39,12 +40,14 @@ final class WeatherViewModel: ObservableObject {
         weatherService: WeatherService,
         persistenceService: PersistenceService,
         locationManager: LocationManager,
-        logger: LoggerService
+        logger: LoggerService,
+        trackerService: TrackerService
     ) {
         self.weatherService = weatherService
         self.persistenceService = persistenceService
         self.locationManager = locationManager
         self.logger = logger
+        self.trackerService = trackerService
         
         setupBindings()
     }
@@ -69,6 +72,10 @@ final class WeatherViewModel: ObservableObject {
     
     func requestCurrentLocation() {
         locationManager.requestLocationAuthorization()
+    }
+    
+    func trackPageView(cityID: String) {
+        trackerService.trackPageView(cityID: cityID)
     }
     
     // MARK: - Private Setup and Helpers
@@ -151,6 +158,7 @@ final class WeatherViewModel: ObservableObject {
         
         if let savedIndex = allTabIDs.firstIndex(of: lastID) {
             self.selectedTab = savedIndex
+            self.trackerService.trackPageView(cityID: allTabIDs[savedIndex])
         }
     }
     
@@ -163,6 +171,7 @@ final class WeatherViewModel: ObservableObject {
         if allTabIDs.indices.contains(index) {
             let idToSave = allTabIDs[index]
             persistenceService.saveLastSelected(cityID: idToSave)
+            self.trackerService.trackPageView(cityID: idToSave)
         }
     }
 }

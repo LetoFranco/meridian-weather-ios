@@ -99,11 +99,13 @@ struct CurrentLocationView_Previews: PreviewProvider {
     static var previews: some View {
         
         func createViewModel(for state: WeatherViewModel.CurrentLocationState) -> WeatherViewModel {
+            let logger = ConsoleLoggerService()
             let vm = WeatherViewModel(
                 weatherService: MockWeatherService(),
                 persistenceService: UserDefaultsPersistenceService(),
                 locationManager: LocationManager(),
-                logger: ConsoleLoggerService()
+                logger: logger,
+                trackerService: AnalyticsTrackerService(logger: logger)
             )
             vm.currentLocationState = state
             return vm
