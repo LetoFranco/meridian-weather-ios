@@ -48,6 +48,7 @@ struct WeatherCardView: View {
 struct WeatherCardView_Previews: PreviewProvider {
     static var previews: some View {
         let dummyModel = WeatherModel(
+            cityID: "london",
             cityName: "London",
             description: "Scattered Clouds",
             iconURL: URL(string: "https://openweathermap.org/img/wn/03d@2x.png"),

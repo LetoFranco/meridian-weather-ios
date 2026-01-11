@@ -2,6 +2,7 @@ import Foundation
 
 // MARK: - OpenWeatherDTO
 
+/// Represents the top-level JSON response from the OpenWeatherMap API.
 struct OpenWeatherDTO: Decodable {
     let coord: CoordDTO
     let weather: [WeatherInfoDTO]
@@ -12,6 +13,7 @@ struct OpenWeatherDTO: Decodable {
 
 // MARK: - CoordDTO
 
+/// Represents the geographical coordinates.
 struct CoordDTO: Decodable {
     let lon: Double
     let lat: Double

@@ -18,6 +18,7 @@ enum WeatherMapper {
         let iconURL = URL(string: "https://openweathermap.org/img/wn/\(dto.weather.first?.icon ?? "")@2x.png")
         
         return WeatherModel(
+            cityID: dto.name.lowercased(),
             cityName: dto.name,
             description: (dto.weather.first?.description ?? "No description").capitalized,
             iconURL: iconURL,

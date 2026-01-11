@@ -127,7 +127,7 @@ struct CurrentLocationView_Previews: PreviewProvider {
         deniedVM.currentLocationState = .denied
         
         let successVM = WeatherViewModel(weatherService: MockWeatherService(), locationManager: LocationManager())
-        let dummyWeather = WeatherModel(cityName: "Cupertino", description: "Sunny", iconURL: nil, currentTemperature: "25°", minTemperature: "20°", maxTemperature: "30°", isDayTime: true)
+        let dummyWeather = WeatherModel(cityID: "cupertino", cityName: "Cupertino", description: "Sunny", iconURL: nil, currentTemperature: "25°", minTemperature: "20°", maxTemperature: "30°", isDayTime: true)
         successVM.currentLocationState = .success(dummyWeather)
         
         let errorVM = WeatherViewModel(weatherService: MockWeatherService(), locationManager: LocationManager())
